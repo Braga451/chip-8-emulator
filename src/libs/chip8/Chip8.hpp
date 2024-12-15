@@ -36,7 +36,20 @@
       void skipXNeqY(const WORD& i);
       void iRegIncPcByTwo();
       void printMemory();
-  
+      void setFontCharacter(const WORD& i);
+      void setXY(const WORD& i);
+      void binaryOr(const WORD& i);
+      void binaryAnd(const WORD& i);
+      void logicalXor(const WORD& i);
+      void addWithPossibleOverflow(const WORD& i);
+      void subtract(const WORD& i, const bool inverse);
+      void shift(const WORD& i, const bool isRight);
+      
+      void addToIndex(const WORD& i);    
+      void binaryCodedDecimalConversion(const WORD& i);
+      void storeMemory(const WORD& i);
+      void loadMemory(const WORD& i);
+
     public:
       Chip8();
       void start(const std::string& roomPath);

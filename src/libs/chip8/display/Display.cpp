@@ -50,7 +50,7 @@ void Display::draw(const unsigned char& x,
   
   std::cout << "(" << (int)j << ", " << (int)i << ")" << std::endl;
 
-  for (int row = 0; row <= n; row++) {
+  for (int row = 0; row < n; row++) {
     std::cout << "Sprite byte position: " << std::hex << iPtr + row << std::endl;
     unsigned char byte = mem[iPtr + row];
     j = x;
