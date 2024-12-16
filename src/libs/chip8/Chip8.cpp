@@ -1,8 +1,11 @@
 #include "Chip8.hpp"
+#include <bits/chrono.h>
 #include <cstring>
 #include <ios>
 #include <iostream>
 #include <fstream>
+#include <chrono>
+#include <thread>
 #include <unistd.h>
 
 Chip8::Chip8() : memory(4096, 0), generalRegisters(16, 0){
@@ -78,7 +81,7 @@ void Chip8::executeInstruction(const WORD& instruction) {
   
   std::cout << "Executing instruction: " << std::hex << instruction << std::endl;
   std::cout << "Nibble: " <<  std::hex << (int)nibble << std::endl;
-  std::cin.get();
+  // std::cin.get();
 
   switch (nibble) {
     case 0x0: {
@@ -390,14 +393,14 @@ void Chip8::display(const WORD& i) {
 void Chip8::start(const std::string& roomPath) {
   Chip8::readRoom(roomPath);
   Chip8::printMemory();
+  std::chrono::microseconds ms = std::chrono::microseconds(1429);
 
   while (true) {
     std::cout << "PC value: " << std::hex << Chip8::pc << std::endl;
 
     WORD instruction = Chip8::fetchInstruction();
     Chip8::executeInstruction(instruction);
-
-    // sleep(1);
+    std::this_thread::sleep_for(ms);
   }
 }
 
@@ -428,7 +431,7 @@ void Chip8::setFontCharacter(const WORD& x) {
 
   BYTE character = Chip8::generalRegisters[x];
 
-  Chip8::iReg = Chip8::memory[0x050 + character];
+  Chip8::iReg = Chip8::memory[0x050 + (character * 5)];
 
   return;
 }
@@ -571,11 +574,13 @@ void Chip8::addWithPossibleOverflow(const WORD& i) {
     << std::endl;
 
 
-  if (Chip8::generalRegisters[x] + Chip8::generalRegisters[y] > 0xFF) 
-    Chip8::generalRegisters[0xF] = 0x1;
-
-  Chip8::generalRegisters[x] += Chip8::generalRegisters[y];
+  WORD sumResult = Chip8::generalRegisters[x] + Chip8::generalRegisters[y];
+    
+  Chip8::generalRegisters[x] = sumResult & 0xFF;
   
+  if (sumResult > 0xFF) Chip8::generalRegisters[0xF] = 0x1;
+  else Chip8::generalRegisters[0xF] = 0x0;
+
    std::cout << "Reg : " << std::hex <<
     (int)x << ": " << std::hex <<
     (int)Chip8::generalRegisters[x]
@@ -614,12 +619,12 @@ void Chip8::subtract(const WORD& i, const bool inverse) {
     minuend = Chip8::generalRegisters[y];
     subtrahend = Chip8::generalRegisters[x];
   }
-  
-  if (minuend > subtrahend) Chip8::generalRegisters[0xF] = 0x1;
-  else if (subtrahend > minuend) Chip8::generalRegisters[0xF] = 0x0;
-  
+   
   Chip8::generalRegisters[x] = ( (minuend - subtrahend) % 256 + 256) % 256;
   
+  if (minuend >= subtrahend) Chip8::generalRegisters[0xF] = 0x1;
+  else Chip8::generalRegisters[0xF] = 0x0;
+
    std::cout << "Reg : " << std::hex <<
     (int)x << ": " << std::hex <<
     (int)Chip8::generalRegisters[x]
@@ -649,26 +654,18 @@ void Chip8::shift(const WORD& i, const bool isRight) {
 
   Chip8::generalRegisters[x] = Chip8::generalRegisters[y];
   
+  BYTE out = 0x0;
   if (isRight) {
-    if ( (Chip8::generalRegisters[x] & 0x1) == 0x1 ) {
-      Chip8::generalRegisters[0xF] = 0x1;
-    }
-    else {
-      Chip8::generalRegisters[0xF] = 0x0;
-    }
+    out = Chip8::generalRegisters[x] & 0x1;
 
     Chip8::generalRegisters[x] >>= 1;
   }
   else {
-    if ( ( (Chip8::generalRegisters[x] >> 11) & 0x1) == 0x1 ) {
-      Chip8::generalRegisters[0xF] = 0x1;
-    }
-    else {
-      Chip8::generalRegisters[0xF] = 0x0;
-    }
+    out = (Chip8::generalRegisters[x] >> 7) & 0x1;
 
     Chip8::generalRegisters[x] <<= 1;
   }
+  Chip8::generalRegisters[0xF] = out;
   
    std::cout << "Reg : " << std::hex <<
     (int)x << ": " << std::hex <<
