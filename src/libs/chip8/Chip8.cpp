@@ -8,7 +8,11 @@
 #include <thread>
 #include <unistd.h>
 
-Chip8::Chip8() : memory(4096, 0), generalRegisters(16, 0){
+Chip8::Chip8() : memory(4096, 0), 
+  generalRegisters(16, 0), 
+  getKeyCycle(false), 
+  delayTimer(0),
+  soundTimer(0) {
   BYTE font[] = {
     0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
     0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -233,6 +237,19 @@ void Chip8::executeInstruction(const WORD& instruction) {
     }
 
     case 0xE: {
+      BYTE xRegister = (otherBits >> 8) & 0xF;
+      BYTE selector = otherBits & 0xFF;
+      switch (selector) {
+        case 0x9E : {
+          Chip8::skipIfKey(xRegister, false);
+          break;
+        }
+
+        case 0xA1: {
+          Chip8::skipIfKey(xRegister, true);
+          break;
+        }
+      }
 
       break;
     }
@@ -242,6 +259,11 @@ void Chip8::executeInstruction(const WORD& instruction) {
       BYTE selector = otherBits & 0xFF;
 
       switch (selector) {
+        case 0x0A: {
+          Chip8::getKey(xRegister);
+          break;
+        }
+
         case 0x29: {
           Chip8::setFontCharacter(xRegister);
           break;
@@ -262,8 +284,23 @@ void Chip8::executeInstruction(const WORD& instruction) {
           break;
         }
 
-        case 0x65: {
+        case 0x65 : {
           Chip8::loadMemory(xRegister);
+          break;
+        }
+
+        case 0x07 : {
+          Chip8::setVXDelayTimer(xRegister);
+          break;
+        }
+
+        case 0x15 : {
+          Chip8::setDelayTimer(xRegister);
+          break;
+        }
+
+        case 0x18 : {
+          Chip8::setSoundTimer(xRegister);
           break;
         }
       }
@@ -393,13 +430,14 @@ void Chip8::display(const WORD& i) {
 void Chip8::start(const std::string& roomPath) {
   Chip8::readRoom(roomPath);
   Chip8::printMemory();
-  std::chrono::microseconds ms = std::chrono::microseconds(1429);
+  std::chrono::microseconds ms = std::chrono::microseconds(1000);
 
   while (true) {
     std::cout << "PC value: " << std::hex << Chip8::pc << std::endl;
-
+    if (!getKeyCycle) keyboard.getKey();
     WORD instruction = Chip8::fetchInstruction();
     Chip8::executeInstruction(instruction);
+    Chip8::updateTimers();
     std::this_thread::sleep_for(ms);
   }
 }
@@ -704,4 +742,64 @@ void Chip8::loadMemory(const WORD& i) {
   }
 
   return;
+}
+
+void Chip8::getKey(const WORD& i) {
+  std::cout << "getKey(" << std::hex <<
+  (int)i << ")" << std::endl;
+
+  BYTE key = Chip8::keyboard.getKey();
+
+  if (key < 0xF) { 
+    Chip8::generalRegisters[i] = key;
+    Chip8::getKeyCycle = false;
+  }
+  else {
+    Chip8::pc -= 2;
+    Chip8::getKeyCycle = true;
+  }
+}
+
+void Chip8::skipIfKey(const WORD& i, const bool inverse) {
+  std::cout << "skipIfKey(" << std::hex <<
+    (int)i << ", " << inverse << ")" << 
+    std::endl;
+
+  bool isPressed = Chip8::keyboard.isPressed(Chip8::generalRegisters[i]);
+
+  if (!inverse) {
+    if (isPressed) {
+      Chip8::iRegIncPcByTwo();
+    }
+  }
+  else {
+    if (!isPressed) {
+      Chip8::iRegIncPcByTwo();
+    }
+  }
+}
+
+void Chip8::updateTimers() {
+  if (Chip8::delayTimer > 0) {
+    Chip8::delayTimer--;
+  }
+  if (Chip8::soundTimer > 0) {
+    Chip8::soundTimer--;
+    // Play song
+  }
+  else {
+    // Stop song
+  }
+}
+
+void Chip8::setVXDelayTimer(const WORD& x) {
+  Chip8::generalRegisters[x] = Chip8::delayTimer;
+}
+
+void Chip8::setDelayTimer(const WORD& x) {
+  Chip8::delayTimer = Chip8::generalRegisters[x];
+}
+
+void Chip8::setSoundTimer(const WORD& x) {
+  Chip8::soundTimer = Chip8::generalRegisters[x];
 }

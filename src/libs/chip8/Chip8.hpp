@@ -3,6 +3,7 @@
 #ifndef CHIP_8_H
   typedef unsigned char BYTE;
   typedef unsigned short WORD; // 16bits
+  #include "keyboard/Keyboard.hpp"
   #define CHIP_8_H
   #include <stack>
   #include <vector>
@@ -10,6 +11,7 @@
   #include "display/Display.hpp"
   class Chip8 {
     private:
+      Keyboard keyboard;
       std::vector<BYTE> memory;
       Display displayHandler;
       WORD pc;
@@ -18,7 +20,8 @@
       BYTE delayTimer;
       BYTE soundTimer;
       std::vector<BYTE> generalRegisters;
-      
+      bool getKeyCycle;    
+
       void readRoom(const std::string& path);
       WORD fetchInstruction();
       void executeInstruction(const WORD& instruction);
@@ -44,11 +47,17 @@
       void addWithPossibleOverflow(const WORD& i);
       void subtract(const WORD& i, const bool inverse);
       void shift(const WORD& i, const bool isRight);
-      
       void addToIndex(const WORD& i);    
       void binaryCodedDecimalConversion(const WORD& i);
       void storeMemory(const WORD& i);
       void loadMemory(const WORD& i);
+      void getKey(const WORD& i);
+      void skipIfKey(const WORD& i, 
+                     const bool inverse);    
+      void updateTimers();
+      void setVXDelayTimer(const WORD& i);
+      void setDelayTimer(const WORD& i);
+      void setSoundTimer(const WORD& i);
 
     public:
       Chip8();
