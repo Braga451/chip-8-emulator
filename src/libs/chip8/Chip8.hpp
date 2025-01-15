@@ -58,6 +58,7 @@
       void setVXDelayTimer(const WORD& i);
       void setDelayTimer(const WORD& i);
       void setSoundTimer(const WORD& i);
+      void jmpWithOffset(const WORD& i);
 
     public:
       Chip8();

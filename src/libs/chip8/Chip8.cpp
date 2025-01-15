@@ -221,7 +221,7 @@ void Chip8::executeInstruction(const WORD& instruction) {
     }
 
     case 0xB: {
-
+      jmpWithOffset(otherBits);
       break;
     }
 
@@ -469,7 +469,7 @@ void Chip8::setFontCharacter(const WORD& x) {
 
   BYTE character = Chip8::generalRegisters[x];
 
-  Chip8::iReg = Chip8::memory[0x050 + (character * 5)];
+  Chip8::iReg = 0x050 + (character * 5);
 
   return;
 }
@@ -529,6 +529,8 @@ void Chip8::binaryOr(const WORD& i) {
     (int)x << ": " << std::hex <<
     (int)Chip8::generalRegisters[x]
     << std::endl;
+  
+  Chip8::generalRegisters[0xF] = 0x0;
 
   return;
 }
@@ -558,6 +560,8 @@ void Chip8::binaryAnd(const WORD& i) {
     (int)x << ": " << std::hex <<
     (int)Chip8::generalRegisters[x]
     << std::endl;
+  
+  Chip8::generalRegisters[0xF] = 0x0;
 
   return;
 }
@@ -588,6 +592,8 @@ void Chip8::logicalXor(const WORD& i) {
     (int)x << ": " << std::hex <<
     (int)Chip8::generalRegisters[x]
     << std::endl;
+  
+  Chip8::generalRegisters[0xF] = 0x0;
 
   return;
 }
@@ -733,6 +739,8 @@ void Chip8::storeMemory(const WORD& i) {
     Chip8::memory[Chip8::iReg + x] = Chip8::generalRegisters[x];
   }
 
+  Chip8::iReg += i + 1;
+
   return;
 }
 
@@ -740,6 +748,8 @@ void Chip8::loadMemory(const WORD& i) {
   for (WORD x = 0x0; x <= i; x++) {
     Chip8::generalRegisters[x] = Chip8::memory[Chip8::iReg + x];
   }
+  
+  Chip8::iReg += i + 1;
 
   return;
 }
@@ -802,4 +812,10 @@ void Chip8::setDelayTimer(const WORD& x) {
 
 void Chip8::setSoundTimer(const WORD& x) {
   Chip8::soundTimer = Chip8::generalRegisters[x];
+}
+
+void Chip8::jmpWithOffset(const WORD& i) {
+  // WORD highestNibble = (i >> 12) & 0xF;
+
+  Chip8::pc = i + Chip8::generalRegisters[0];
 }
